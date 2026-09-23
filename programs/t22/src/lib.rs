@@ -1,28 +1,32 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::program::invoke;
 use anchor_spl::token_interface::{
-    default_account_state_initialize, default_account_state_update, initialize_mint2,
-    metadata_pointer_initialize, mint_close_authority_initialize, permanent_delegate_initialize,
-    spl_token_2022, thaw_account, token_metadata_initialize, transfer_checked_with_fee,
-    transfer_fee_initialize, DefaultAccountStateInitialize, DefaultAccountStateUpdate,
-    InitializeMint2, MetadataPointerInitialize, MintCloseAuthorityInitialize,
-    PermanentDelegateInitialize, ThawAccount, TokenInterface, TokenMetadataInitialize,
-    TransferCheckedWithFee, TransferFeeInitialize,
+    close_account, default_account_state_initialize, default_account_state_update,
+    harvest_withheld_tokens_to_mint, initialize_mint2, metadata_pointer_initialize,
+    mint_close_authority_initialize, permanent_delegate_initialize, spl_token_2022, thaw_account,
+    token_metadata_initialize, transfer_checked_with_fee, transfer_fee_initialize,
+    withdraw_withheld_tokens_from_mint, CloseAccount, DefaultAccountStateInitialize,
+    DefaultAccountStateUpdate, HarvestWithheldTokensToMint, InitializeMint2,
+    MetadataPointerInitialize, MintCloseAuthorityInitialize, PermanentDelegateInitialize,
+    ThawAccount, TokenInterface, TokenMetadataInitialize, TransferCheckedWithFee,
+    TransferFeeInitialize, WithdrawWithheldTokensFromMint,
 };
 use proofext::instruction::ProofLocation;
 use spl_token_2022::{
     extension::{
         confidential_transfer::{
-            instruction as confidential_instruction, DecryptableBalance, EncryptedBalance,
+            instruction as confidential_instruction, ConfidentialTransferAccount,
+            DecryptableBalance, EncryptedBalance,
         },
         confidential_transfer_fee::instruction as confidential_fee_instruction,
         permanent_delegate::PermanentDelegate,
         transfer_fee::TransferFeeConfig,
         BaseStateWithExtensions, ExtensionType, StateWithExtensions,
     },
-    state::{AccountState, Mint as MintState},
+    state::{Account as TokenAccountState, AccountState, Mint as MintState},
 };
 use spl_token_metadata_interface::state::TokenMetadata;
+use spl_type_length_value::variable_len_pack::VariableLenPack;
 
 declare_id!("GWiW3NmAppZ91sGyjPN8QGpBwEX4avcUMGZmGKiExBmx");
 
@@ -270,6 +274,61 @@ pub mod t22 {
         Ok(())
     }
 
+    /// Sweeps fees withheld on recipient accounts into the mint. Permissionless
+    /// on purpose: a wallet closing an account must clear its withheld balance,
+    /// and only the sweep can do that.
+    pub fn harvest_fees<'info>(ctx: Context<'info, HarvestFees<'info>>) -> Result<()> {
+        require!(!ctx.remaining_accounts.is_empty(), MintError::NoFeeSources);
+
+        harvest_withheld_tokens_to_mint(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                HarvestWithheldTokensToMint {
+                    token_program_id: ctx.accounts.token_program.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
+                },
+            ),
+            ctx.remaining_accounts.to_vec(),
+        )?;
+
+        msg!("harvested from {} accounts", ctx.remaining_accounts.len());
+        Ok(())
+    }
+
+    /// Collects harvested fees out of the mint. Not permissionless: this takes
+    /// the withdraw-withheld authority.
+    pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
+        withdraw_withheld_tokens_from_mint(CpiContext::new(
+            ctx.accounts.token_program.key(),
+            WithdrawWithheldTokensFromMint {
+                token_program_id: ctx.accounts.token_program.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
+                destination: ctx.accounts.destination.to_account_info(),
+                authority: ctx.accounts.withdraw_withheld_authority.to_account_info(),
+            },
+        ))?;
+
+        msg!("fees collected to {}", ctx.accounts.destination.key());
+        Ok(())
+    }
+
+    /// Decommissions the mint and reclaims its rent. Token-2022 allows this
+    /// only at zero supply, which is what makes it the last step of a
+    /// v1 -> v2 migration.
+    pub fn close_mint(ctx: Context<CloseMint>) -> Result<()> {
+        close_account(CpiContext::new(
+            ctx.accounts.token_program.key(),
+            CloseAccount {
+                account: ctx.accounts.mint.to_account_info(),
+                destination: ctx.accounts.destination.to_account_info(),
+                authority: ctx.accounts.close_authority.to_account_info(),
+            },
+        ))?;
+
+        msg!("mint {} closed", ctx.accounts.mint.key());
+        Ok(())
+    }
+
     /// Owner-only, unlike the ATA creation that precedes it. Requires the
     /// account to have been grown with `Reallocate` first.
     pub fn configure_confidential_account(
@@ -452,6 +511,20 @@ pub mod t22 {
                 .decimals
         };
 
+        // ApplyPendingBalance zeroes both halves, so a non-zero one means the
+        // equality proof was built against a ciphertext the chain has moved
+        // past. Refuse rather than emit a transfer that fails opaquely.
+        {
+            let data = ctx.accounts.token_account.try_borrow_data()?;
+            let account = StateWithExtensions::<TokenAccountState>::unpack(&data)?;
+            let confidential = account.get_extension::<ConfidentialTransferAccount>()?;
+            require!(
+                confidential.pending_balance_lo == EncryptedBalance::default()
+                    && confidential.pending_balance_hi == EncryptedBalance::default(),
+                MintError::PendingBalanceNotApplied
+            );
+        }
+
         invoke(
             &confidential_instruction::inner_withdraw(
                 ctx.accounts.token_program.key,
@@ -511,13 +584,18 @@ fn init_mint<'info>(
     uri: &str,
     extensions: impl FnOnce(&MintParts<'info>) -> Result<()>,
 ) -> Result<()> {
+    // Token-2022 stores a variable-length extension behind its own u16 type and
+    // u16 length. `TokenMetadata::tlv_size_of` sizes for the generic TLV header
+    // instead, which is 8 bytes larger and over-funds the mint.
     let metadata_space = TokenMetadata {
         name: name.to_string(),
         symbol: symbol.to_string(),
         uri: uri.to_string(),
         ..Default::default()
     }
-    .tlv_size_of()?;
+    .get_packed_len()?
+        + std::mem::size_of::<ExtensionType>()
+        + std::mem::size_of::<u16>();
     let lamports = Rent::get()?.minimum_balance(space + metadata_space);
 
     anchor_lang::system_program::create_account(
@@ -700,6 +778,44 @@ pub struct Seize<'info> {
     pub token_program: Interface<'info, TokenInterface>,
 }
 
+/// The accounts to sweep arrive as `remaining_accounts`.
+#[derive(Accounts)]
+pub struct HarvestFees<'info> {
+    /// CHECK: validated by the token program.
+    #[account(mut)]
+    pub mint: UncheckedAccount<'info>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct CollectFees<'info> {
+    /// CHECK: validated by the token program.
+    #[account(mut)]
+    pub mint: UncheckedAccount<'info>,
+
+    /// CHECK: validated by the token program.
+    #[account(mut)]
+    pub destination: UncheckedAccount<'info>,
+
+    pub withdraw_withheld_authority: Signer<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct CloseMint<'info> {
+    /// CHECK: validated by the token program.
+    #[account(mut)]
+    pub mint: UncheckedAccount<'info>,
+
+    /// CHECK: receives the reclaimed rent.
+    #[account(mut)]
+    pub destination: UncheckedAccount<'info>,
+
+    pub close_authority: Signer<'info>,
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
 #[derive(Accounts)]
 pub struct ThawAfterKyc<'info> {
     /// CHECK: validated by the token program.
@@ -842,4 +958,8 @@ pub enum MintError {
     NoSeizureAuthority,
     #[msg("a confidential transfer with a fee needs five proof context accounts")]
     MissingProofContexts,
+    #[msg("no accounts were supplied to harvest fees from")]
+    NoFeeSources,
+    #[msg("apply the pending balance before withdrawing")]
+    PendingBalanceNotApplied,
 }
