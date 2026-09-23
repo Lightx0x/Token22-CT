@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-token22_ct = "GWiW3NmAppZ91sGyjPN8QGpBwEX4avcUMGZmGKiExBmx"
+t22 = "GWiW3NmAppZ91sGyjPN8QGpBwEX4avcUMGZmGKiExBmx"
 
 [provider]
 cluster = "localnet"
