@@ -18,7 +18,12 @@ A new mint address, not an upgrade: extensions initialize only before
 
 | path | |
 |---|---|
-| [`src/lib.rs`](programs/t22/src/lib.rs) | the program |
+| [`src/lib.rs`](programs/t22/src/lib.rs) | `#[program]` entry points, each a one-line call |
+| [`src/constants.rs`](programs/t22/src/constants.rs) | ciphertext lengths, extension lists |
+| [`src/errors.rs`](programs/t22/src/errors.rs) | `MintError` |
+| [`src/helpers/`](programs/t22/src/helpers) | mint creation steps, fee quoting |
+| [`src/instructions/remittance/`](programs/t22/src/instructions/remittance) | v1 mint, transfer, KYC, fees, close, allowlist |
+| [`src/instructions/confidential/`](programs/t22/src/instructions/confidential) | v2 mint, seizure, confidential lifecycle |
 | [`src/confidential_lifecycle.md`](programs/t22/src/confidential_lifecycle.md) | configure → approve → deposit → apply → transfer → withdraw |
 | [`src/seizure_vs_confidentiality.md`](programs/t22/src/seizure_vs_confidentiality.md) | why a seizure authority cannot reach a hidden balance |
 | `tests/` | `mint`, `authority`, `confidential` |
