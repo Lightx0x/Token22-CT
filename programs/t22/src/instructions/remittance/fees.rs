@@ -1,9 +1,12 @@
 use {
     crate::errors::MintError,
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
-        harvest_withheld_tokens_to_mint, withdraw_withheld_tokens_from_mint,
-        HarvestWithheldTokensToMint, TokenInterface, WithdrawWithheldTokensFromMint,
+    anchor_spl::{
+        token_2022::Token2022,
+        token_2022_extensions::{
+            harvest_withheld_tokens_to_mint, withdraw_withheld_tokens_from_mint,
+            HarvestWithheldTokensToMint, WithdrawWithheldTokensFromMint,
+        },
     },
 };
 
@@ -14,7 +17,7 @@ pub struct HarvestFees<'info> {
     #[account(mut)]
     pub mint: UncheckedAccount<'info>,
 
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 #[derive(Accounts)]
@@ -28,7 +31,7 @@ pub struct CollectFees<'info> {
     pub destination: UncheckedAccount<'info>,
 
     pub withdraw_withheld_authority: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Sweeps fees withheld on recipient accounts into the mint. Permissionless

@@ -24,7 +24,15 @@ pub mod t22 {
         symbol: String,
         uri: String,
     ) -> Result<()> {
-        remittance::create_mint::handler(ctx, decimals, basis_points, maximum_fee, name, symbol, uri)
+        remittance::create_mint::handler(
+            ctx,
+            decimals,
+            basis_points,
+            maximum_fee,
+            name,
+            symbol,
+            uri,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

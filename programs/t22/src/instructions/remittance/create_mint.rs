@@ -1,9 +1,9 @@
 use {
     crate::{constants::REMITTANCE_EXTENSIONS, helpers::*},
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::{extension::ExtensionType, state::Mint as MintState},
-        TokenInterface,
+        Token2022,
     },
 };
 
@@ -19,12 +19,12 @@ pub struct CreateMint<'info> {
     #[account(mut, signer)]
     pub mint: UncheckedAccount<'info>,
 
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
 
 impl<'info> CreateMint<'info> {
-    pub(crate) fn common(&self) -> MintParts<'info> {
+    pub(crate) fn common(&self) -> mint_init::MintParts<'info> {
         MintParts {
             payer: self.payer.to_account_info(),
             mint: self.mint.to_account_info(),

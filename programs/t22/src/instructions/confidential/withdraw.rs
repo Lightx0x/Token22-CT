@@ -1,7 +1,7 @@
 use {
     crate::{constants::AE_CIPHERTEXT_LEN, errors::MintError},
     anchor_lang::{prelude::*, solana_program::program::invoke},
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::{
             extension::{
                 confidential_transfer::{
@@ -12,7 +12,7 @@ use {
             },
             state::{Account as TokenAccountState, Mint as MintState},
         },
-        TokenInterface,
+        Token2022,
     },
     proofext::instruction::ProofLocation,
 };
@@ -34,7 +34,7 @@ pub struct WithdrawConfidential<'info> {
     pub range_proof: UncheckedAccount<'info>,
 
     pub owner: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Spends the available balance, so apply pending first or the equality

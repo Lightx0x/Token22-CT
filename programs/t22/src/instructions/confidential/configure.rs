@@ -1,11 +1,11 @@
 use {
     crate::constants::AE_CIPHERTEXT_LEN,
     anchor_lang::{prelude::*, solana_program::program::invoke},
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::extension::confidential_transfer::{
             instruction as confidential_instruction, DecryptableBalance,
         },
-        TokenInterface,
+        Token2022,
     },
     proofext::instruction::ProofLocation,
 };
@@ -27,7 +27,7 @@ pub struct ConfigureConfidentialAccount<'info> {
 
     /// Not the payer: checked against the token account's owner field.
     pub owner: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Owner-only, unlike the ATA creation that precedes it. Requires the

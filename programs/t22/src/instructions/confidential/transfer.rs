@@ -4,11 +4,11 @@ use {
         errors::MintError,
     },
     anchor_lang::{prelude::*, solana_program::program::invoke},
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::extension::confidential_transfer::{
             instruction as confidential_instruction, DecryptableBalance, EncryptedBalance,
         },
-        TokenInterface,
+        Token2022,
     },
     proofext::instruction::ProofLocation,
 };
@@ -30,7 +30,7 @@ pub struct TransferConfidential<'info> {
     pub destination: UncheckedAccount<'info>,
 
     pub owner: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// `TransferWithFee`, not `Transfer`: the processor branches on

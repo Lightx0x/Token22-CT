@@ -1,14 +1,13 @@
 use {
     anchor_lang::{prelude::*, solana_program::program::invoke},
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::{
             extension::{
-                confidential_transfer::instruction as confidential_instruction,
-                StateWithExtensions,
+                confidential_transfer::instruction as confidential_instruction, StateWithExtensions,
             },
             state::Mint as MintState,
         },
-        TokenInterface,
+        Token2022,
     },
 };
 
@@ -23,7 +22,7 @@ pub struct DepositConfidential<'info> {
     pub mint: UncheckedAccount<'info>,
 
     pub owner: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Credits the *pending* balance. The amount is public on the way in.

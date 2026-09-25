@@ -1,4 +1,4 @@
-use anchor_spl::token_interface::spl_token_2022::extension::ExtensionType;
+use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
 
 /// Instruction args are Borsh-encoded; the pod ciphertext types are not Borsh,
 /// so they cross the boundary as raw bytes.

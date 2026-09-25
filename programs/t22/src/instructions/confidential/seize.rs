@@ -1,15 +1,18 @@
 use {
     crate::{errors::MintError, helpers::quote_fee},
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
-        spl_token_2022::{
-            extension::{
-                permanent_delegate::PermanentDelegate, BaseStateWithExtensions,
-                StateWithExtensions,
+    anchor_spl::{
+        token_2022::{
+            spl_token_2022::{
+                extension::{
+                    permanent_delegate::PermanentDelegate, BaseStateWithExtensions,
+                    StateWithExtensions,
+                },
+                state::Mint as MintState,
             },
-            state::Mint as MintState,
+            Token2022,
         },
-        transfer_checked_with_fee, TokenInterface, TransferCheckedWithFee,
+        token_2022_extensions::{transfer_checked_with_fee, TransferCheckedWithFee},
     },
 };
 
@@ -29,7 +32,7 @@ pub struct Seize<'info> {
 
     /// The account owner does not sign.
     pub permanent_delegate: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Same instruction as a normal transfer; only the signer differs. Reaches

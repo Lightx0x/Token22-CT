@@ -1,8 +1,9 @@
 use {
     crate::helpers::quote_fee,
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
-        transfer_checked_with_fee, TokenInterface, TransferCheckedWithFee,
+    anchor_spl::{
+        token_2022::Token2022,
+        token_2022_extensions::{transfer_checked_with_fee, TransferCheckedWithFee},
     },
 };
 
@@ -12,8 +13,9 @@ pub struct TransferWithFee<'info> {
     #[account(mut)]
     pub source: UncheckedAccount<'info>,
 
-    /// The `owner` constraint is load-bearing: `StateWithExtensions::unpack`
-    /// validates layout only.
+    /// Parsed here by `quote_fee`, which checks layout only. The `owner`
+    /// constraint rejects a non-Token-2022 account before we compute a fee
+    /// from its bytes; the CPI would reject it too, but later and less clearly.
     ///
     /// CHECK: parsed in the handler.
     #[account(owner = token_program.key())]
@@ -24,7 +26,7 @@ pub struct TransferWithFee<'info> {
     pub destination: UncheckedAccount<'info>,
 
     pub authority: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// `TransferCheckedWithFee` makes the program recheck the fee we quote and

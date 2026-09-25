@@ -1,8 +1,8 @@
 use {
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
-        default_account_state_update, spl_token_2022::state::AccountState, thaw_account,
-        DefaultAccountStateUpdate, ThawAccount, TokenInterface,
+    anchor_spl::{
+        token_2022::{spl_token_2022::state::AccountState, thaw_account, ThawAccount, Token2022},
+        token_2022_extensions::{default_account_state_update, DefaultAccountStateUpdate},
     },
 };
 
@@ -16,7 +16,7 @@ pub struct ThawAfterKyc<'info> {
     pub mint: UncheckedAccount<'info>,
 
     pub freeze_authority: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 #[derive(Accounts)]
@@ -26,7 +26,7 @@ pub struct SetDefaultState<'info> {
     pub mint: UncheckedAccount<'info>,
 
     pub freeze_authority: Signer<'info>,
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// Thaws one account. Distinct from [`set_default_state`], which only governs

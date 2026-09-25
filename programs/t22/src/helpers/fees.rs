@@ -1,8 +1,10 @@
 use {
     crate::errors::MintError,
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::spl_token_2022::{
-        extension::{transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions},
+    anchor_spl::token_2022::spl_token_2022::{
+        extension::{
+            transfer_fee::TransferFeeConfig, BaseStateWithExtensions, StateWithExtensions,
+        },
         state::Mint as MintState,
     },
 };

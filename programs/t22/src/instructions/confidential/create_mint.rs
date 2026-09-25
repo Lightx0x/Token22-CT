@@ -1,11 +1,8 @@
 use {
-    crate::{
-        constants::CONFIDENTIAL_EXTENSIONS, helpers::*, instructions::remittance::CreateMint,
-    },
+    crate::{constants::CONFIDENTIAL_EXTENSIONS, helpers::*, instructions::remittance::CreateMint},
     anchor_lang::{prelude::*, solana_program::program::invoke},
-    anchor_spl::token_interface::{
-        permanent_delegate_initialize,
-        spl_token_2022::{
+    anchor_spl::{
+        token_2022::spl_token_2022::{
             extension::{
                 confidential_transfer::instruction as confidential_instruction,
                 confidential_transfer_fee::instruction as confidential_fee_instruction,
@@ -13,7 +10,7 @@ use {
             },
             state::Mint as MintState,
         },
-        PermanentDelegateInitialize,
+        token_2022_extensions::{permanent_delegate_initialize, PermanentDelegateInitialize},
     },
 };
 

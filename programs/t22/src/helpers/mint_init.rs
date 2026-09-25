@@ -1,13 +1,18 @@
 use {
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
-        default_account_state_initialize, initialize_mint2, metadata_pointer_initialize,
-        mint_close_authority_initialize, spl_token_2022, token_metadata_initialize,
-        transfer_fee_initialize, DefaultAccountStateInitialize, InitializeMint2,
-        MetadataPointerInitialize, MintCloseAuthorityInitialize, TokenMetadataInitialize,
-        TransferFeeInitialize,
+    anchor_spl::{
+        token_2022::{
+            initialize_mint2,
+            spl_token_2022::{extension::ExtensionType, state::AccountState},
+            InitializeMint2,
+        },
+        token_2022_extensions::{
+            default_account_state_initialize, metadata_pointer_initialize,
+            mint_close_authority_initialize, token_metadata_initialize, transfer_fee_initialize,
+            DefaultAccountStateInitialize, MetadataPointerInitialize, MintCloseAuthorityInitialize,
+            TokenMetadataInitialize, TransferFeeInitialize,
+        },
     },
-    spl_token_2022::{extension::ExtensionType, state::AccountState},
     spl_token_metadata_interface::state::TokenMetadata,
     spl_type_length_value::variable_len_pack::VariableLenPack,
 };

@@ -4,12 +4,12 @@ use {
         errors::MintError,
     },
     anchor_lang::prelude::*,
-    anchor_spl::token_interface::{
+    anchor_spl::token_2022::{
         spl_token_2022::{
             extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions},
             state::Mint as MintState,
         },
-        TokenInterface,
+        Token2022,
     },
 };
 
@@ -19,7 +19,7 @@ pub struct AssertSupportedMint<'info> {
     #[account(owner = token_program.key())]
     pub mint: UncheckedAccount<'info>,
 
-    pub token_program: Interface<'info, TokenInterface>,
+    pub token_program: Program<'info, Token2022>,
 }
 
 /// `InterfaceAccount<Mint>` parses the TLV region and discards it, and
